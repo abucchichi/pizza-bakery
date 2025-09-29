@@ -9,17 +9,16 @@
     "version": "1",
     "name": "Pizza Bakery",
     "subtitle": "Bake pizzas, earn points",
-    "description": "A fun Base mini app where you bake pizzas by checking in every 15 minutes.",
+    "description": "A fun Base mini app where you bake pizzas by checking in every 15 minutes",
 
     "iconUrl": "https://pizza-bakery.vercel.app/pizza-icon.png",
-
+    "splashImageUrl":  "https://pizza-bakery.vercel.app/logo192.png",
     "splashBackgroundColor": "#000000",
     "homeUrl": "https://pizza-bakery.vercel.app/",
-
     "primaryCategory": "social",
     "tags": ["pizza", "game", "base", "miniapp"],
     "heroImageUrl":  "https://pizza-bakery.vercel.app/logo512.png",
-    "tagline": "Bake, earn, climb the leaderboard!",
+    "tagline": "Bake and earn",
     "ogTitle": "Pizza Bakery",
     "ogDescription": "Bake virtual pizzas on Base. 4 check-ins = 1 pizza 🍕",
     "ogImageUrl": "https://pizza-bakery.vercel.app/logo512.png"
