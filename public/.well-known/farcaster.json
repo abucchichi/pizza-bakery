@@ -1,0 +1,11 @@
+{
+
+  "miniapp": {
+    "url": "https://pizza-bakery.vercel.app/"
+  },
+  "baseBuilder": {
+    "allowedAddresses": [
+      "0x9D84f3bA9e9bddCA57091Dfa1D8e8A16C86e5d59"
+    ]
+  }
+}

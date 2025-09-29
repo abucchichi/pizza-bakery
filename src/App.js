@@ -7,6 +7,8 @@ const CONTRACT_ABI = [
   "function checkIn() external",
   "function getBakerInfo(address _baker) external view returns (uint256 pizzaProgress, uint256 lastCheckIn, uint256 totalPizzas, uint256 points, uint256 timeUntilNextCheckIn)",
   "function canCheckInNow(address _baker) external view returns (bool)",
+  "function getLeaderboard(uint256 limit) external view returns (address[] addresses, uint256[] pizzas, uint256[] points)",
+  "function getTotalBakers() external view returns (uint256)",
   "event CheckedIn(address indexed baker, uint256 progress, uint256 timestamp)",
   "event PizzaBaked(address indexed baker, uint256 totalPizzas, uint256 points)"
 ];
@@ -21,6 +23,8 @@ const PizzaBakeryDapp = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [contract, setContract] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [totalBakers, setTotalBakers] = useState(0);
 
   useEffect(() => {
     checkWalletConnection();
@@ -30,7 +34,11 @@ const PizzaBakeryDapp = () => {
   useEffect(() => {
     if (account && contract) {
       loadUserData();
-      const interval = setInterval(loadUserData, 5000);
+      loadLeaderboard();
+      const interval = setInterval(() => {
+        loadUserData();
+        loadLeaderboard();
+      }, 5000);
       return () => clearInterval(interval);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -39,7 +47,9 @@ const PizzaBakeryDapp = () => {
   const checkWalletConnection = async () => {
     if (typeof window.ethereum !== 'undefined') {
       try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        const accounts = await window.ethereum.request({ 
+          method: 'eth_accounts' 
+        });
         if (accounts.length > 0) {
           await setupContract(accounts[0]);
         }
@@ -64,8 +74,13 @@ const PizzaBakeryDapp = () => {
   const connectWallet = async () => {
     if (typeof window.ethereum !== 'undefined') {
       try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        const accounts = await window.ethereum.request({ 
+          method: 'eth_requestAccounts' 
+        });
+        
+        const chainId = await window.ethereum.request({ 
+          method: 'eth_chainId' 
+        });
         
         if (chainId !== '0x2105') {
           try {
@@ -80,7 +95,11 @@ const PizzaBakeryDapp = () => {
                 params: [{
                   chainId: '0x2105',
                   chainName: 'Base',
-                  nativeCurrency: { name: 'Ethereum', symbol: 'ETH', decimals: 18 },
+                  nativeCurrency: {
+                    name: 'Ethereum',
+                    symbol: 'ETH',
+                    decimals: 18
+                  },
                   rpcUrls: ['https://mainnet.base.org'],
                   blockExplorerUrls: ['https://basescan.org']
                 }]
@@ -88,17 +107,19 @@ const PizzaBakeryDapp = () => {
             }
           }
         }
+        
         await setupContract(accounts[0]);
       } catch (err) {
         console.error(err);
       }
     } else {
-      alert('You need a wallet like MetaMask or Rabby to use this app.');
+      alert('надо wallet типа metamask или rabby');
     }
   };
 
   const loadUserData = async () => {
     if (!contract || !account) return;
+    
     try {
       const info = await contract.getBakerInfo(account);
       setPizzaProgress(Number(info[0]));
@@ -114,8 +135,28 @@ const PizzaBakeryDapp = () => {
     }
   };
 
+  const loadLeaderboard = async () => {
+    if (!contract) return;
+    
+    try {
+      const total = await contract.getTotalBakers();
+      setTotalBakers(Number(total));
+      
+      const [addresses, pizzas, points] = await contract.getLeaderboard(10);
+      const leaders = addresses.map((addr, i) => ({
+        address: addr,
+        pizzas: Number(pizzas[i]),
+        points: Number(points[i])
+      }));
+      setLeaderboard(leaders);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleCheckIn = async () => {
     if (!contract || !canCheckIn) return;
+    
     setLoading(true);
     try {
       const tx = await contract.checkIn();
@@ -123,7 +164,7 @@ const PizzaBakeryDapp = () => {
       await loadUserData();
     } catch (err) {
       console.error(err);
-      alert('Check-in failed — maybe it’s too early?');
+      alert('ошибка чекина, может рано ещё');
     }
     setLoading(false);
   };
@@ -139,7 +180,7 @@ const PizzaBakeryDapp = () => {
       <div className="min-h-screen bg-gradient-to-br from-orange-900 via-red-900 to-pink-900 flex items-center justify-center p-4">
         <div className="bg-black/40 backdrop-blur-xl p-12 rounded-3xl border border-orange-500/30 text-center max-w-md">
           <Pizza className="w-24 h-24 mx-auto mb-6 text-orange-400 animate-pulse" />
-          <h1 className="text-5xl font-black text-orange-300 mb-4">Pizza Bakery</h1>
+          <h1 className="text-5xl font-black text-orange-300 mb-4">pizza bakery</h1>
           <p className="text-orange-200/70 mb-8 text-lg">
             Check in every 15 minutes<br/>4 check-ins = 1 pizza<br/>Earn points<br/>Become a legend
           </p>
@@ -148,7 +189,7 @@ const PizzaBakeryDapp = () => {
             className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold py-4 px-8 rounded-xl transition-all transform hover:scale-105 flex items-center gap-3 mx-auto text-lg shadow-2xl"
           >
             <Wallet className="w-6 h-6" />
-            Connect Wallet
+            connect wallet
           </button>
         </div>
       </div>
@@ -164,9 +205,7 @@ const PizzaBakeryDapp = () => {
               <Pizza className="w-12 h-12 text-orange-400" />
               <div>
                 <h1 className="text-4xl font-black text-orange-300">Pizza Bakery</h1>
-                <p className="text-orange-200/50 text-sm font-mono">
-                  {account.slice(0, 6)}...{account.slice(-4)}
-                </p>
+                <p className="text-orange-200/50 text-sm font-mono">{account.slice(0, 6)}...{account.slice(-4)}</p>
               </div>
             </div>
             <div className="text-right">
@@ -180,7 +219,7 @@ const PizzaBakeryDapp = () => {
 
           <div className="bg-black/30 rounded-2xl p-8 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-orange-200 text-xl font-bold">Pizza Progress</span>
+              <span className="text-orange-200 text-xl font-bold"><span className="text-orange-200 text-xl font-bold">Pizza Progress</span></span>
               <span className="text-orange-300 text-2xl font-black">{pizzaProgress}/4</span>
             </div>
             
@@ -215,7 +254,7 @@ const PizzaBakeryDapp = () => {
               <div className="flex items-center justify-center gap-3 mb-4 text-orange-200">
                 <Clock className="w-5 h-5" />
                 <span className="text-lg">
-                  {canCheckIn ? 'You can check in now!' : `Next check-in in ${formatTime(timeLeft)}`}
+                    {canCheckIn ? 'You can check in now!' : `Next check-in in ${formatTime(timeLeft)}`}
                 </span>
               </div>
             )}
@@ -248,8 +287,8 @@ const PizzaBakeryDapp = () => {
         </div>
 
         <div className="text-center text-orange-200/50 text-sm">
-          <p>Check in every 15 minutes • 4 check-ins = 1 pizza • Earn points</p>
-          <p className="mt-2">Contract: {CONTRACT_ADDRESS}</p>
+           <p>Check in every 15 minutes • 4 check-ins = 1 pizza • Earn points</p>
+          <p className="mt-2">contract: {CONTRACT_ADDRESS}</p>
         </div>
       </div>
     </div>
